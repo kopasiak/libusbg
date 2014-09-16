@@ -41,6 +41,11 @@ void show_gadget(usbg_gadget *g)
 		return;
 	}
 
+	if(usbg_get_gadget_attrs(g, &g_attrs) != USBG_SUCCESS) {
+		fprintf(stderr, "Unable to get gadget attributes\n");
+		return;
+	}
+
 	fprintf(stdout, "ID %04x:%04x '%s'\n",
 			g_attrs.idVendor, g_attrs.idProduct, name);
 
