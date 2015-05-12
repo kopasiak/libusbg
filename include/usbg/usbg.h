@@ -44,11 +44,11 @@ extern "C" {
 #define LANG_US_ENG		0x0409
 #define DEFAULT_CONFIG_LABEL "config"
 
-/* This one has to be at least 18 bytes to hold network addres */
+/* This one has to be at least 18 bytes to hold network address */
 #define USBG_MAX_STR_LENGTH 256
 #define USBG_MAX_PATH_LENGTH PATH_MAX
 #define USBG_MAX_NAME_LENGTH 40
-/* Dev name for ffs is a part of function name, we subtracs 4 char for "ffs." */
+/* Dev name for ffs is a part of function name, we subtract 4 char for "ffs." */
 #define USBG_MAX_DEV_LENGTH (USBG_MAX_NAME_LENGTH - 4)
 /* ConfigFS just like SysFS uses page size as max size of file content */
 #define USBG_MAX_FILE_SIZE 4096
@@ -56,7 +56,7 @@ extern "C" {
 /**
  * @brief Additional option for usbg_rm_* functions.
  * @details This option allows to remove all content
- * of gadget/config/function recursive.
+ * of gadget/config/function recursively.
  */
 #define USBG_RM_RECURSE 1
 
@@ -96,7 +96,7 @@ typedef struct usbg_function usbg_function;
 typedef struct usbg_binding usbg_binding;
 
 /**
- * @brief USB device controler
+ * @brief USB device controller
  */
 typedef struct usbg_udc usbg_udc;
 
@@ -182,6 +182,7 @@ typedef enum
 	F_PHONET,
 	F_FFS,
 	F_MASS_STORAGE,
+	F_MIDI,
 	USBG_FUNCTION_TYPE_MAX,
 } usbg_function_type;
 
@@ -200,7 +201,7 @@ typedef struct {
 typedef struct {
 	struct ether_addr dev_addr;
 	struct ether_addr host_addr;
-	char *ifname;
+	const char *ifname;
 	int qmult;
 } usbg_f_net_attrs;
 
@@ -209,17 +210,17 @@ typedef struct {
  * @brief Attributes for the phonet USB function
  */
 typedef struct {
-	char *ifname;
+	const char *ifname;
 } usbg_f_phonet_attrs;
 
 /**
  * @typedef usbg_f_ffs_attrs
  * @brief Attributes for function fs based functions
- * @details This is read only and virtual attribute it is non present
+ * @details This is read only and a virtual attribute, it is non present
  * on config fs.
  */
 typedef struct {
-	char *dev_name;
+	const char *dev_name;
 } usbg_f_ffs_attrs;
 
 /**
@@ -232,7 +233,7 @@ typedef struct usbg_f_ms_lun_attrs {
 	bool ro;
 	bool nofua;
 	bool removable;
-	char *filename;
+	const char *filename;
 } usbg_f_ms_lun_attrs;
 
 /**
@@ -246,6 +247,19 @@ typedef struct {
 } usbg_f_ms_attrs;
 
 /**
+ * @typedef usbg_f_midi_attrs
+ * @brief Attributes for the MIDI function
+ */
+typedef struct {
+	int index;
+	const char *id;
+	unsigned int in_ports;
+	unsigned int out_ports;
+	unsigned int buflen;
+	unsigned int qlen;
+} usbg_f_midi_attrs;
+
+/**
  * @typedef attrs
  * @brief Attributes for a given function type
  */
@@ -255,6 +269,7 @@ typedef union {
 	usbg_f_phonet_attrs phonet;
 	usbg_f_ffs_attrs ffs;
 	usbg_f_ms_attrs ms;
+	usbg_f_midi_attrs midi;
 } usbg_f_attrs;
 
 typedef enum {
@@ -263,6 +278,7 @@ typedef enum {
 	USBG_F_ATTRS_PHONET,
 	USBG_F_ATTRS_FFS,
 	USBG_F_ATTRS_MS,
+	USBG_F_ATTRS_MIDI,
 } usbg_f_attrs_type;
 
 typedef struct {
@@ -335,7 +351,7 @@ extern void usbg_cleanup(usbg_state *s);
  * @return Path to configfs or NULL if error occurred
  * @warning Returned buffer should not be edited!
  * Returned string is valid as long as passed usbg_state is valid.
- * For example path is valid unitill usbg_cleanup() call.
+ * For example path is valid until usbg_cleanup() call.
  */
 extern const char *usbg_get_configfs_path(usbg_state *s);
 
@@ -479,7 +495,7 @@ extern int usbg_create_gadget(usbg_state *s, const char *name,
 
 /**
  * @brief Get string representing selected gadget attribute
- * @param attr code of selected attrobute
+ * @param attr code of selected attribute
  * @return String suitable for given attribute or NULL if such
  * string has not been found
  */
@@ -726,7 +742,7 @@ extern int usbg_cpy_function_instance(usbg_function *f, char *buf, size_t len);
 extern const char *usbg_get_function_type_str(usbg_function_type type);
 
 /**
- * @brief Lookup function type sutable for given name
+ * @brief Lookup function type suitable for given name
  * @param name Name of function
  * @return Function type enum or negative error code
  */
@@ -950,7 +966,7 @@ extern size_t usbg_get_gadget_udc_len(usbg_gadget *g);
 extern int usbg_cpy_udc_name(usbg_udc *u, char *buf, size_t len);
 
 /**
- * @brief Get udc to which gadget is binded
+ * @brief Get udc to which gadget is bound
  * @param g Pointer to gadget
  * @return Pointer to UDC or NULL if gadget is not enabled
  */
@@ -1167,7 +1183,7 @@ extern int usbg_export_gadget(usbg_gadget *g, FILE *stream);
  * @brief Imports usb function from file and adds it to given gadget
  * @param g Gadget where function should be placed
  * @param stream from which function should be imported
- * @param instance name which shuld be used for new function
+ * @param instance name which should be used for new function
  * @param f place for pointer to imported function
  * if NULL this param will be ignored.
  * @return 0 on success, usbg_error otherwise
@@ -1179,7 +1195,7 @@ extern int usbg_import_function(usbg_gadget *g, FILE *stream,
  * @brief Imports usb configuration from file and adds it to given gadget
  * @param g Gadget where configuration should be placed
  * @param stream from which configuration should be imported
- * @param id which shuld be used for new configuration
+ * @param id which should be used for new configuration
  * @param c place for pointer to imported configuration
  * if NULL this param will be ignored.
  * @return 0 on success, usbg_error otherwise
@@ -1190,7 +1206,7 @@ extern int usbg_import_config(usbg_gadget *g, FILE *stream, int id,
  * @brief Imports usb gadget from file
  * @param s current state of library
  * @param stream from which gadget should be imported
- * @param name which shuld be used for new gadget
+ * @param name which should be used for new gadget
  * @param g place for pointer to imported gadget
  * if NULL this param will be ignored.
  * @return 0 on success, usbg_error otherwise

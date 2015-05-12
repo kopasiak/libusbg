@@ -104,6 +104,7 @@ void show_function(usbg_function *f)
 
 	fprintf(stdout, "  Function, type: %s instance: %s\n",
 			usbg_get_function_type_str(type), instance);
+
 	switch (f_attrs.header.attrs_type) {
 	case USBG_F_ATTRS_SERIAL:
 		fprintf(stdout, "    port_num\t\t%d\n",
@@ -122,6 +123,7 @@ void show_function(usbg_function *f)
 		fprintf(stdout, "    qmult\t\t%d\n", f_net_attrs->qmult);
 		break;
 	}
+
 	case USBG_F_ATTRS_PHONET:
 		fprintf(stdout, "    ifname\t\t%s\n", f_attrs.attrs.phonet.ifname);
 		break;
@@ -129,6 +131,7 @@ void show_function(usbg_function *f)
 	case USBG_F_ATTRS_FFS:
 		fprintf(stdout, "    dev_name\t\t%s\n", f_attrs.attrs.ffs.dev_name);
 		break;
+
 	case USBG_F_ATTRS_MS:
 	{
 		usbg_f_ms_attrs *attrs = &f_attrs.attrs.ms;
@@ -146,6 +149,20 @@ void show_function(usbg_function *f)
 		}
 		break;
 	}
+
+	case USBG_F_ATTRS_MIDI:
+	{
+		usbg_f_midi_attrs *attrs = &f_attrs.attrs.midi;
+
+		fprintf(stdout, "    index\t\t%d\n", attrs->index);
+		fprintf(stdout, "    id\t\t\t%s\n", attrs->id);
+		fprintf(stdout, "    in_ports\t\t%d\n", attrs->in_ports);
+		fprintf(stdout, "    out_ports\t\t%d\n", attrs->out_ports);
+		fprintf(stdout, "    buflen\t\t%d\n", attrs->buflen);
+		fprintf(stdout, "    qlen\t\t%d\n", attrs->qlen);
+		break;
+	}
+
 	default:
 		fprintf(stdout, "    UNKNOWN\n");
 	}

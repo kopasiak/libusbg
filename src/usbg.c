@@ -51,6 +51,7 @@ const char *function_names[] =
 	"phonet",
 	"ffs",
 	"mass_storage",
+	"midi",
 };
 
 ARRAY_SIZE_SENTINEL(function_names, USBG_FUNCTION_TYPE_MAX);
@@ -155,7 +156,7 @@ const char *usbg_error_name(usbg_error e)
 		ret = "USBG_ERROR_MISSING_TAG";
 		break;
 	case USBG_ERROR_INVALID_TYPE:
-		ret = "USBG_ERROR_INVALUD_TYPE";
+		ret = "USBG_ERROR_INVALID_TYPE";
 		break;
 	case USBG_ERROR_INVALID_VALUE:
 		ret = "USBG_ERROR_INVALID_VALUE";
@@ -252,6 +253,9 @@ int usbg_lookup_function_attrs_type(int f_type)
 	case F_MASS_STORAGE:
 		ret = USBG_F_ATTRS_MS;
 		break;
+	case F_MIDI:
+		ret = USBG_F_ATTRS_MIDI;
+		break;
 	default:
 		ret = USBG_ERROR_NOT_SUPPORTED;
 	}
@@ -275,7 +279,7 @@ int usbg_lookup_function_type(const char *name)
 	return USBG_ERROR_NOT_FOUND;
 }
 
-const const char *usbg_get_function_type_str(usbg_function_type type)
+const char *usbg_get_function_type_str(usbg_function_type type)
 {
 	return type >= USBG_FUNCTION_TYPE_MIN &&
 		type < USBG_FUNCTION_TYPE_MAX ?
@@ -298,7 +302,7 @@ int usbg_lookup_gadget_attr(const char *name)
 	return USBG_ERROR_NOT_FOUND;
 }
 
-const const char *usbg_get_gadget_attr_str(usbg_gadget_attr attr)
+const char *usbg_get_gadget_attr_str(usbg_gadget_attr attr)
 {
 	return attr >= USBG_GADGET_ATTR_MIN &&
 		attr < USBG_GADGET_ATTR_MAX ?
@@ -473,7 +477,7 @@ static int usbg_read_string(const char *path, const char *name,
 }
 
 static int usbg_read_string_alloc(const char *path, const char *name,
-			       const char *file, char **dest)
+			       const char *file, const char **dest)
 {
 	char buf[USBG_MAX_FILE_SIZE];
 	char *new_buf = NULL;
@@ -731,7 +735,7 @@ static usbg_function *usbg_allocate_function(const char *path,
 	f->parent = parent;
 	f->type = type;
 
-	/* only composed funcitons (with subdirs) require this callback */
+	/* only composed functions (with subdirs) require this callback */
 	switch (usbg_lookup_function_attrs_type(type)) {
 	case USBG_F_ATTRS_MS:
 		f->rm_callback = usbg_rm_ms_function;
@@ -1051,6 +1055,39 @@ out:
 	return ret;
 }
 
+static int usbg_parse_function_midi_attrs(usbg_function *f,
+		usbg_f_midi_attrs *attrs)
+{
+	int ret;
+
+	ret = usbg_read_dec(f->path, f->name, "index", &(attrs->index));
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_read_string_alloc(f->path, f->name, "id", &(attrs->id));
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_read_dec(f->path, f->name, "in_ports", (int*)&(attrs->in_ports));
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_read_dec(f->path, f->name, "out_ports", (int*)&(attrs->out_ports));
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_read_dec(f->path, f->name, "buflen", (int*)&(attrs->buflen));
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_read_dec(f->path, f->name, "qlen", (int*)&(attrs->buflen));
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+out:
+	return ret;
+}
+
 static int usbg_parse_function_attrs(usbg_function *f,
 		usbg_function_attrs *f_attrs)
 {
@@ -1093,9 +1130,15 @@ static int usbg_parse_function_attrs(usbg_function *f,
 			ret = USBG_SUCCESS;
 		break;
 	}
+
 	case USBG_F_ATTRS_MS:
 		f_attrs->header.attrs_type = USBG_F_ATTRS_MS;
 		ret = usbg_parse_function_ms_attrs(f, &(f_attrs->attrs.ms));
+		break;
+
+	case USBG_F_ATTRS_MIDI:
+		f_attrs->header.attrs_type = USBG_F_ATTRS_MIDI;
+		ret = usbg_parse_function_midi_attrs(f, &(f_attrs->attrs.midi));
 		break;
 
 	default:
@@ -1558,7 +1601,7 @@ static int usbg_parse_state(usbg_state *s)
 	int ret = USBG_SUCCESS;
 
 	/*
-	 * USBG_ERROR_NOT_FOUND is returned if we are runing on machine where
+	 * USBG_ERROR_NOT_FOUND is returned if we are running on machine where
 	 * there is no udc support in kernel (no /sys/class/udc dir).
 	 * This check allows to run library on such machine or if we don't
 	 * have rights to read this directory.
@@ -2867,7 +2910,7 @@ static void usbg_cleanup_function_ms_lun_attrs(usbg_f_ms_lun_attrs *lun_attrs)
 	if (!lun_attrs)
 		return;
 
-	free(lun_attrs->filename);
+	free((char*)lun_attrs->filename);
 	lun_attrs->id = -1;
 }
 
@@ -2885,19 +2928,20 @@ void usbg_cleanup_function_attrs(usbg_function_attrs *f_attrs)
 		break;
 
 	case USBG_F_ATTRS_NET:
-		free(attrs->net.ifname);
+		free((char*)attrs->net.ifname);
 		attrs->net.ifname = NULL;
 		break;
 
 	case USBG_F_ATTRS_PHONET:
-		free(attrs->phonet.ifname);
+		free((char*)attrs->phonet.ifname);
 		attrs->phonet.ifname = NULL;
 		break;
 
 	case USBG_F_ATTRS_FFS:
-		free(attrs->ffs.dev_name);
+		free((char*)attrs->ffs.dev_name);
 		attrs->ffs.dev_name = NULL;
 		break;
+
 	case USBG_F_ATTRS_MS:
 	{
 		int i;
@@ -2919,6 +2963,12 @@ void usbg_cleanup_function_attrs(usbg_function_attrs *f_attrs)
 	ms_break:
 		break;
 	}
+
+	case USBG_F_ATTRS_MIDI:
+		free((char*)attrs->midi.id);
+		attrs->midi.id = NULL;
+		break;
+
 	default:
 		ERROR("Unsupported attrs type\n");
 		break;
@@ -3049,7 +3099,7 @@ static int usbg_set_function_ms_attrs(usbg_function *f,
 			if (!ret) {
 				/*
 				 * If we have created a new directory in
-				 * this funciton let's mark it so we can
+				 * this function let's mark it so we can
 				 * cleanup in case of error
 				 */
 				new_lun_mask[i] = 1;
@@ -3120,6 +3170,37 @@ out:
 	return ret;
 }
 
+int usbg_set_function_midi_attrs(usbg_function *f,
+				 const usbg_f_midi_attrs *attrs)
+{
+	int ret;
+
+	ret = usbg_write_dec(f->path, f->name, "index", attrs->index);
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_write_string(f->path, f->name, "id", attrs->id);
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_write_dec(f->path, f->name, "in_ports", attrs->in_ports);
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_write_dec(f->path, f->name, "out_ports", attrs->out_ports);
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_write_dec(f->path, f->name, "buflen", attrs->buflen);
+	if (ret != USBG_SUCCESS)
+		goto out;
+
+	ret = usbg_write_dec(f->path, f->name, "qlen", attrs->qlen);
+
+out:
+	return ret;
+}
+
 int usbg_set_function_attrs(usbg_function *f,
 			    const usbg_function_attrs *f_attrs)
 {
@@ -3157,14 +3238,20 @@ int usbg_set_function_attrs(usbg_function *f,
 		break;
 
 	case USBG_F_ATTRS_FFS:
-		/* dev_name is a virtual atribute so allow only to use empty
+		/* dev_name is a virtual attribute so allow only to use empty
 		 * empty string which means nop */
 		ret = f_attrs->attrs.ffs.dev_name && f_attrs->attrs.ffs.dev_name[0] ?
 			USBG_ERROR_INVALID_PARAM : USBG_SUCCESS;
 		break;
+
 	case USBG_F_ATTRS_MS:
 		ret = usbg_set_function_ms_attrs(f, &f_attrs->attrs.ms);
 		break;
+
+	case USBG_F_ATTRS_MIDI:
+		ret = usbg_set_function_midi_attrs(f, &f_attrs->attrs.midi);
+		break;
+
 	default:
 		ERROR("Unsupported function type\n");
 		ret = USBG_ERROR_NOT_SUPPORTED;
