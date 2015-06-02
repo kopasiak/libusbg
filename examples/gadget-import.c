@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 		goto out1;
 	}
 
-	/* Do gadget exporting */
+	/* Do gadget importing */
 	usbg_ret = usbg_init("/sys/kernel/config", &s);
 	if (usbg_ret != USBG_SUCCESS) {
 		fprintf(stderr, "Error on USB gadget init\n");
