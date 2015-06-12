@@ -44,7 +44,7 @@ static int usbg_export_binding(usbg_binding *b, config_setting_t *root)
 	char label[USBG_MAX_NAME_LENGTH];
 	int nmb;
 
-#define CRETAE_ATTR_STRING(SOURCE, NAME)				\
+#define CREATE_ATTR_STRING(SOURCE, NAME)				\
 	do {								\
 		node = config_setting_add(root, NAME, CONFIG_TYPE_STRING); \
 		if (!node)						\
@@ -56,7 +56,7 @@ static int usbg_export_binding(usbg_binding *b, config_setting_t *root)
 		}							\
 	} while (0)
 
-	CRETAE_ATTR_STRING(b->name, USBG_NAME_TAG);
+	CREATE_ATTR_STRING(b->name, USBG_NAME_TAG);
 
 	nmb = generate_function_label(b->target, label, sizeof(label));
 	if (nmb >= sizeof(label)) {
@@ -64,9 +64,9 @@ static int usbg_export_binding(usbg_binding *b, config_setting_t *root)
 		goto out;
 	}
 
-	CRETAE_ATTR_STRING(label, USBG_FUNCTION_TAG);
+	CREATE_ATTR_STRING(label, USBG_FUNCTION_TAG);
 
-#undef CRETAE_ATTR_STRING
+#undef CREATE_ATTR_STRING
 
 	ret = USBG_SUCCESS;
 
