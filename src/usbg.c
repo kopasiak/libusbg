@@ -1960,12 +1960,14 @@ int usbg_rm_gadget(usbg_gadget *g, int opts)
 		ret = usbg_rm_all_dirs(spath);
 		if (ret != USBG_SUCCESS)
 			goto out;
-	}
-
-	ret = usbg_rm_dir(g->path, g->name);
-	if (ret == USBG_SUCCESS) {
+			
 		TAILQ_REMOVE(&(s->gadgets), g, gnode);
 		usbg_free_gadget(g);
+	}
+        else {
+		TAILQ_REMOVE(&(s->gadgets), g, gnode);
+		usbg_free_gadget(g);
+		ret = USBG_SUCCESS;
 	}
 
 out:
