@@ -1918,7 +1918,7 @@ out:
 	return ret;
 }
 
-int usbg_rm_gadget(usbg_gadget *g, int opts)
+int usbg_rm_gadget(usbg_gadget *g)
 {
 	int ret = USBG_ERROR_INVALID_PARAM;
 	usbg_state *s;
@@ -1927,13 +1927,13 @@ int usbg_rm_gadget(usbg_gadget *g, int opts)
 
 	s = g->parent;
 
-	if (opts & USBG_RM_RECURSE) {
-		/* Recursive flag was given
-		 * so remove all configs and functions
-		 * using recursive flags */
+		/* Recursively remove all configs 
+                   and functions by default if gadget
+                   removal is happening */
 		usbg_config *c;
 		usbg_function *f;
 		int nmb;
+                int opts = USBG_RM_RECURSE;
 		char spath[USBG_MAX_PATH_LENGTH];
 
 		while (!TAILQ_EMPTY(&g->configs)) {
@@ -1960,15 +1960,12 @@ int usbg_rm_gadget(usbg_gadget *g, int opts)
 		ret = usbg_rm_all_dirs(spath);
 		if (ret != USBG_SUCCESS)
 			goto out;
-			
-		TAILQ_REMOVE(&(s->gadgets), g, gnode);
-		usbg_free_gadget(g);
-	}
-        else {
-		TAILQ_REMOVE(&(s->gadgets), g, gnode);
-		usbg_free_gadget(g);
-		ret = USBG_SUCCESS;
-	}
+         
+                ret = usbg_rm_dir(g->path, g->name);		
+                if (ret == USBG_SUCCESS) {
+		       TAILQ_REMOVE(&(s->gadgets), g, gnode);
+		       usbg_free_gadget(g);
+                }
 
 out:
 	return ret;

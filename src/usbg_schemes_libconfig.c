@@ -1918,7 +1918,7 @@ error:
 error2:
 	/* We ignore returned value, if function fails
 	 * there is no way to handle it */
-	usbg_rm_gadget(newg, USBG_RM_RECURSE);
+	usbg_rm_gadget(newg);
 	return ret;
 }
 

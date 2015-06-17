@@ -443,10 +443,9 @@ extern int usbg_rm_function(usbg_function *f, int opts);
  * @brief Remove existing USB gadget
  * @details This function frees also the memory allocated for gadget
  * @param g Gadget to be removed
- * @param opts Additional options for configuration removal.
  * @return 0 on success, usbg_error if error occurred
  */
-extern int usbg_rm_gadget(usbg_gadget *g, int opts);
+extern int usbg_rm_gadget(usbg_gadget *g);
 
 /**
  * @brief Remove configuration strings for given language
