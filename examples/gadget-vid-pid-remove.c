@@ -49,7 +49,7 @@ int remove_gadget(usbg_gadget *g)
 
 	/* Remove gadget with USBG_RM_RECURSE flag to remove
 	 * also its configurations, functions and strings */
-	usbg_ret = usbg_rm_gadget(g, USBG_RM_RECURSE);
+	usbg_ret = usbg_rm_gadget(g);
 	if (usbg_ret != USBG_SUCCESS) {
 		fprintf(stderr, "Error on USB gadget remove\n");
 		fprintf(stderr, "Error: %s : %s\n", usbg_error_name(usbg_ret),
